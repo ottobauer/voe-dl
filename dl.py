@@ -416,17 +416,18 @@ def download(URL):
 
         # Method 7: Look for MKGMa encoded sources
         if not source_json:
-            print("[*] Searching for MKGMa sources...")
+            print("[*] Searching for encrypted json object...")
 
-            MKGMa_pattern = r'MKGMa="(.*?)"'
-            match = re.search(MKGMa_pattern, html_page.text, re.DOTALL)
+            encrypted_json_pattern = r'type="application/json">\["(.*?)"\]</script>'
+            match = re.search(encrypted_json_pattern, html_page.text, re.DOTALL)
 
             if match:
-                raw_MKGMa = match.group(1)
+                encrypted_json = match.group(1)
 
                 try:
-                    encrypted_data = rot13(raw_MKGMa)
-                    cleaned_input = sanitize_input(encrypted_data, html_page.text)
+                    encrypted_data = rot13(encrypted_json)
+                    blacklist = get_blacklist(html_page.text)
+                    cleaned_input = sanitize_input(encrypted_data, blacklist)
                     underscore_removed = cleaned_input.replace('_', '')
                     decoded_from_base64 = base64.b64decode(underscore_removed).decode('utf-8')
                     shifted_back = shift_back(decoded_from_base64, 3)
@@ -457,7 +458,7 @@ def download(URL):
                             print("[+] Found base64 encoded HLS (m3u8) URL.")
 
                 except Exception as e:
-                    print(f"[-] Error while decoding MKGMa string: {e}")
+                    print(f"[-] Error while decoding string: {e}")
         
         # If we still don't have sources, try to find any iframe that might contain the video
         if not source_json:
@@ -617,6 +618,7 @@ def is_bait_source(source):
     """Check if the given source matches any predefined bait patterns."""
     baits = [
         "BigBuckBunny.mp4",
+        "Big_Buck_Bunny_1080_10s_5MB.mp4",
         # Add more bait patterns as needed
     ]
     return any(bait in source for bait in baits)
@@ -635,7 +637,7 @@ def clean_base64(s):
         print(f"[!] Invalid base64 string: {e}")
         return None
         
-# Rot13 decoding for MKGMa
+# Rot13
 def rot13(text):
     result = []
     for char in text:
@@ -647,11 +649,33 @@ def rot13(text):
             result.append(char)
     return ''.join(result)
 
+
+def get_blacklist(html_page):
+    match = re.search(r'src="/js/loader(.*?)"', html_page, re.DOTALL)
+    js_loader_url_part =  match.group(1)
+    js_url = "https://voe.sx/js/loader" + js_loader_url_part
+    try:
+        response = requests.get(js_url)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+        return []
+
+    js_content = response.text
+
+    pattern = r"\[\s*('(?:[^']+)'\s*(?:,\s*'[^']+'\s*){6})\]"
+    match = re.search(pattern, js_content)
+
+    if match:
+        entries_string = match.group(1)
+        items = re.findall(r"'([^']+)'", entries_string)
+        return items
+    else:
+        print("No blacklist found in the content.")
+        return []
+
 # Sanitize input by replacing blacklist symbols with underscores
-def sanitize_input(text, html_page):
-    blacklist_pattern = r"\[\s*'([^']+)'(?:\s*,\s*'([^']+)'){6}\s*\]"
-    match_b = re.search(blacklist_pattern, html_page, re.DOTALL)
-    blacklist = match_b.group()  if match_b else []
+def sanitize_input(text, blacklist):
     result = text
     for symbol in blacklist:
         pattern = re.escape(symbol)
