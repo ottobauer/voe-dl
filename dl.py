@@ -414,7 +414,7 @@ def download(URL):
                 except Exception as e:
                     print(f"[!] Failed to decode a168c string: {e}")
 
-        # Method 7: Look for MKGMa encoded sources
+        # Method 7: Look for encrypted json object
         if not source_json:
             print("[*] Searching for encrypted json object...")
 
