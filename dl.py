@@ -416,11 +416,11 @@ def download(URL):
 
         # Method 7: Look for encrypted json object
         if not source_json:
-           print("[*] Searching for encrypted json object...")
+            print("[*] Searching for encrypted json object...")
 
             encrypted_json_pattern = r'type="application/json">\["(.*?)"\]</script>'
             match = re.search(encrypted_json_pattern, html_page.text, re.DOTALL)
-
+            
             if match:
                 encrypted_json = match.group(1)
 
@@ -635,7 +635,7 @@ def clean_base64(s):
         print(f"[!] Invalid base64 string: {e}")
         return None
         
-# Rot13 decoding for MKGMa
+# Rot13 decoding
 def rot13(text):
     result = []
     for char in text:
@@ -646,17 +646,6 @@ def rot13(text):
         else:
             result.append(char)
     return ''.join(result)
-
-# Sanitize input by replacing blacklist symbols with underscores
-def sanitize_input(text, html_page):
-    blacklist_pattern = r"\[\s*'([^']+)'(?:\s*,\s*'([^']+)'){6}\s*\]"
-    match_b = re.search(blacklist_pattern, html_page, re.DOTALL)
-    blacklist = match_b.group()  if match_b else []
-    result = text
-    for symbol in blacklist:
-        pattern = re.escape(symbol)
-        result = re.sub(pattern, '_', result)
-    return result
 
 # Shift characters back by a specified amount
 def shift_back(text, amount):
