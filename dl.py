@@ -414,20 +414,19 @@ def download(URL):
                 except Exception as e:
                     print(f"[!] Failed to decode a168c string: {e}")
 
-        # Method 7: Look for MKGMa encoded sources
+        # Method 7: Look for encrypted json object
         if not source_json:
-            print("[*] Searching for MKGMa sources...")
+           print("[*] Searching for encrypted json object...")
 
-            MKGMa_pattern = r'MKGMa="(.*?)"'
-            match = re.search(MKGMa_pattern, html_page.text, re.DOTALL)
+            encrypted_json_pattern = r'type="application/json">\["(.*?)"\]</script>'
+            match = re.search(encrypted_json_pattern, html_page.text, re.DOTALL)
 
             if match:
-                raw_MKGMa = match.group(1)
+                encrypted_json = match.group(1)
 
                 try:
-                    encrypted_data = rot13(raw_MKGMa)
-                    cleaned_input = sanitize_input(encrypted_data, html_page.text)
-                    underscore_removed = cleaned_input.replace('_', '')
+                    encrypted_data = rot13(encrypted_json)
+                    underscore_removed = encrypted_data.replace('_', '')
                     decoded_from_base64 = base64.b64decode(underscore_removed).decode('utf-8')
                     shifted_back = shift_back(decoded_from_base64, 3)
                     reversed_string = shifted_back[::-1]
@@ -616,6 +615,7 @@ def delpartfiles():
 def is_bait_source(source):
     """Check if the given source matches any predefined bait patterns."""
     baits = [
+        "Big_Buck_Bunny_1080_10s_5MB",
         "BigBuckBunny.mp4",
         # Add more bait patterns as needed
     ]
